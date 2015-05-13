@@ -1,0 +1,9 @@
+[package]
+
+name = "genetics"
+version = "0.0.1"
+authors = [ "Raymond Chandler III <raymondchandleriii@gmail.com>" ]
+
+[dependencies]
+
+rand="0.3.0"
