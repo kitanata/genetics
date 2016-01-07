@@ -1,6 +1,6 @@
 extern crate rand;
 
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, sample, Rng};
 
 fn fitness(target: &Vec<char>, entity: &Vec<char>) -> i32 {
     let mut fit_value = 0;
@@ -76,6 +76,7 @@ fn main() {
     let mut generation = vec![adam, eve];
     let mut rng = thread_rng();
 
+    let mut num_entities = 2;
     let mut generate_num = 0;
     let mut run_generations = true;
     while(run_generations) {
@@ -86,31 +87,27 @@ fn main() {
 
         let mut pairs: Vec<(Vec<char>, Vec<char>)> = Vec::new();
 
-        println!("New Generation! Generating {} pairs.", num_pairs);
+        println!("New Generation # {}! Mating {} pairs!", generate_num, num_pairs);
+
+        // Hunt for mates.
+        rng.shuffle(&mut generation);
 
         for j in 0..num_pairs {
-            let mut rnd_index = 0;
-            if generation.len() > 2 {
-                rnd_index = rng.gen_range(0, generation.len() - 2);
-            }
-
-            let father = generation.remove(rnd_index);
-            let mother = generation.remove(rnd_index);
+            let father = generation.pop().unwrap();
+            let mother = generation.pop().unwrap();
 
             pairs.push((father, mother));
         }
 
-        println!("Finished generating pair.");
+        println!("Finished generating pairs.");
 
         for (mother, father) in pairs {
-            for k in 0..2 {
+            num_entities += 8;
+
+            for k in 0..8 {
                 let child_dna = mutate(&mut breed(&mother, &father));
 
-                println!("Generation #: {} Child #: {}", generate_num, k);
-                println!("Mother:  {}", dna_to_string(&mother));
-                println!("Father:  {}", dna_to_string(&father));
-                println!("Child:   {}", dna_to_string(&child_dna));
-                println!("Target:  {}", dna_to_string(&target));
+                println!("Child #: {} = {}", k, dna_to_string(&child_dna));
 
                 if child_dna == target {
                     println!("SUCCESS! Generation #: {} Child #: {}", generate_num, k);
@@ -122,9 +119,6 @@ fn main() {
 
                 generation.push(child_dna);
             }
-
-            generation.push(mother);
-            generation.push(father);
 
             if run_generations == false {
                 break;
@@ -142,24 +136,25 @@ fn main() {
         fit_mean = fit_mean / (pool_size as i32);
         println!("Mean Fit: {}", fit_mean);
 
-        //Killing off the weak
-        let mut kill_count = 0;
-        let mut next_generation: Vec<Vec<char>> = Vec::new();
-        for s in &generation {
-            if fitness(&target, s) > fit_mean {
-                next_generation.push(s.clone());
-            } else {
-                kill_count += 1;
-            }
+        //Find the median
+        generation.sort_by(|a, b| fitness(&target, b).cmp(&fitness(&target, a)));
+
+        //Kill off the weak
+        let mut survivor_count = generation.len() / 2;
+
+        if survivor_count > 25 {
+            survivor_count = 25; //
         }
 
-        next_generation.push(generation.remove(0));
+        let kill_count = generation.len() - survivor_count;
 
-        generation = next_generation;
-        println!("Next Generation size is {} entities!", generation.len());
+        println!("Killing off: {} entities!", kill_count);
+        generation.truncate(survivor_count);
 
         if generation.len() < 2 {
             panic!("Should not happen.");
         }
     }
+
+    println!("Total Entities Created {}!", num_entities);
 }
